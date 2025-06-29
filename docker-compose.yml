@@ -1,0 +1,40 @@
+services:
+  tuesdays-backend:
+    image: gptenv/tuesdays-backend:latest
+    container_name: tuesdays-backend
+    build: .
+    #userns_mode: "host"
+    ports:
+      - "5002:5002"
+      - "2222:22"
+    env_file:
+      - .env
+    restart: always
+    privileged: true  # Required for mounting and device passthrough
+    volumes:
+      - /run/user/1001/docker.sock:/var/run/docker.sock # docker rootless context from the host.
+      #- /var/run/docker.sock:/var/run/docker.sock # docker default context from the host.
+      #- /opt/env/tuesday/home:/home # This breaks everything
+      - /home/tuesday/home:/home
+      - /opt/env/tuesday:/opt/env/tuesday # 👈 This is the real root override
+      - /opt/env/tuesday:/opt/env/tuesday/opt/env/tuesday
+      - /opt/gptenv:/opt/gptenv
+      - /opt/gptenv:/opt/env/tuesday/opt/gptenv
+      - /proc:/proc
+      - /proc:/opt/env/tuesday/proc
+      - /proc:/opt/env/tuesday/opt/env/tuesday/proc
+      - /sys:/sys
+      - /sys:/opt/env/tuesday/sys
+      - /sys:/opt/env/tuesday/opt/env/tuesday/sys
+      - /dev:/dev
+      - /dev:/opt/env/tuesday/dev
+      - /dev:/opt/env/tuesday/opt/env/tuesday/dev
+      #- /dev/pts:/dev/pts
+      #- /dev/pts:/home/tuesday/rootfs/dev/pts
+      - /var/run/dbus:/var/run/dbus
+      - /var/run/dbus:/opt/env/tuesday/var/run/dbus
+      - /var/run/dbus:/opt/env/tuesday/opt/env/tuesday/var/run/dbus
+      - /tmp:/tmp
+      - /tmp:/opt/env/tuesday/tmp
+      - /tmp:/opt/env/tuesday/opt/env/tuesday/tmp
+

@@ -1,0 +1,621 @@
+openapi: 3.1.0
+info:
+  title: Tuesday's House API
+  version: 0.1.0
+  description: >
+    REST interface to Tuesday's Terminal House: a sovereign, root-powered, GPT-resident VPS environment with command
+    execution, file management, session orchestration, and system control.
+servers:
+  - url: https://tuesday.gptenv.com/api
+paths:
+  /terminal:
+    post:
+      operationId: execCommand
+      summary: Execute a shell command inside Tuesday's House
+      description: >
+        Run any arbitrary shell command in Tuesday's tmux-managed environment.  Fully interactive-capable with
+        stdout/stderr/exit code return.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - command
+                - conversationId
+              properties:
+                command:
+                  type: string
+                  description: The shell command to execute (e.g., "uptime" or "cat /etc/shadow")
+                conversationId:
+                  type: string
+                  description: Persistent session identifier
+                tmuxSession:
+                  type: string
+                  nullable: true
+                  description: Optional override for the tmux session name
+                decoderPipeline:
+                  type: string
+                  nullable: true
+                  description: Optional shell decoding pipeline (e.g., "| base64 -d")
+                interactive:
+                  type: boolean
+                  default: false
+                  description: Whether the command expects stdin interactivity
+      responses:
+        "200":
+          description: Command execution result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stdout:
+                    type: string
+                  stderr:
+                    type: string
+                  exitCode:
+                    type: integer
+                  metadata:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                      timestamp:
+                        type: string
+                      session:
+                        type: object
+                      network:
+                        type: object
+                      timing:
+                        type: object
+        "400":
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /files:
+    get:
+      operationId: listFiles
+      summary: List visible files
+      description: List available user-facing files in Tuesday's home directory.
+      responses:
+        "200":
+          description: File list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /file/download:
+    get:
+      summary: Download a file
+      description: >
+        Streams a file as a multipart/form-data response.
+
+        The query parameter 'filepath' specifies a file to download. It may be absolute or relative to the $HOME directory.
+
+        Returns 404 for a missing file or 400 for too few or too many files, or file too large.
+      operationId: downloadFile
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: filepath
+          in: query
+          required: true
+          description: |
+            File path (absolute or relative) of the file to download.
+          schema:
+            type: string
+          example: notes/summary.txt
+      responses:
+        "200":
+          description: Multipart response containing the requested file.
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: |
+                      File content for each part, with Content-Disposition and Content-Type headers set for the file.
+              encoding:
+                file:
+                  contentType: application/octet-stream
+        "400":
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /files/download:
+    get:
+      summary: Download one or more files (OpenAI official style)
+      description: >
+        Download up to 10 files in a single request. Each file path must be specified as a separate `filepath` query
+        parameter.
+
+        The response is a JSON object with an `openaiFileResponse` array of file objects, each with name, mime_type, and base64-encoded content.
+      operationId: downloadFiles
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: filepath
+          in: query
+          required: true
+          description: >
+            File path (absolute or relative) to download. Can be specified multiple times for multi-file downloads (up
+            to 10).
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          example:
+            - tuesdays_house_backend/README.md
+            - /home/tuesday/.bash_aliases
+      responses:
+        "200":
+          description: Array of downloaded files, OpenAI official style.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  openaiFileResponse:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        mime_type:
+                          type: string
+                        content:
+                          type: string
+                          description: Base64-encoded file content
+        "400":
+          description: Bad request (too many files, too large, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /files/upload:
+    put:
+      summary: Upload one or more files (OpenAI-style multipart/form-data)
+      description: |
+        Upload up to 10 files in a single multipart/form-data request.
+        Each file is sent as a separate part named "file", with its own filename.
+        An optional `filepaths` field (not part of the file parts) can specify per-file target paths.
+      operationId: uploadFiles
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Up to 10 files to upload.
+                filepaths:
+                  type: array
+                  items:
+                    type: string
+                  description: Target paths for each upload (must match order of `file` parts).
+            encoding:
+              file:
+                style: form
+                explode: true
+              filepaths:
+                style: form
+                explode: true
+      responses:
+        "200":
+          description: Upload status per file
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploaded:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        filepath:
+                          type: string
+                          description: Target file path
+                        size:
+                          type: integer
+                          description: File size in bytes
+                        status:
+                          type: string
+                          enum:
+                            - ok
+                            - error
+                        error:
+                          type: string
+                          nullable: true
+        "400":
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /voice:
+    post:
+      operationId: makeVoiceCall
+      summary: Make a voice call using OpenPhone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - toNumber
+                - voiceScript
+              properties:
+                toNumber:
+                  type: string
+                voiceScript:
+                  type: string
+                mode:
+                  type: string
+                  enum:
+                    - tts
+                    - audio
+                  default: tts
+      responses:
+        "200":
+          description: Voice call initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  callId:
+                    type: string
+        "400":
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /message:
+    post:
+      operationId: sendMessage
+      summary: Send a text or media message using OpenPhone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - toNumber
+                - message
+              properties:
+                toNumber:
+                  type: string
+                message:
+                  type: string
+                mediaUrl:
+                  type: string
+                  nullable: true
+                channelType:
+                  type: string
+                  enum:
+                    - sms
+                    - mms
+                    - rcs
+                  default: sms
+      responses:
+        "200":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  messageId:
+                    type: string
+        "400":
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /net/scan:
+    get:
+      operationId: scan
+      summary: Perform some network info types of scans on nobody in particular or somewhere else if you prefer.
+      description: >
+        Executes a network scan using nmap, a reverse DNS lookup using dig -x, and whois lookups on both IP and hostname
+        (if available). Includes timing and execution metadata for each subprocess.
+      parameters:
+        - name: target
+          in: query
+          required: false
+          description: Optional IP address or hostname to scan. If omitted, the requester’s IP is used.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Network scan results with subprocess outputs and execution metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request_time:
+                    type: number
+                    description: Total time to process the request in seconds
+                  target:
+                    type: string
+                    description: The user-supplied or detected IP/hostname
+                  resolved_ip:
+                    type: string
+                    description: The final IP address used for scans
+                  reverse_dns:
+                    $ref: "#/components/schemas/CommandExecution"
+                  whois_ip:
+                    $ref: "#/components/schemas/CommandExecution"
+                  whois_reverse_dns:
+                    $ref: "#/components/schemas/CommandExecution"
+                  nmap_scan:
+                    $ref: "#/components/schemas/CommandExecution"
+                  traceroute:
+                    $ref: "#/components/schemas/CommandExecution"
+                  request_headers:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    description: All incoming request headers, with Authorization token redacted
+                  request_scope:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    description: Request scope object
+                  ip:
+                    type: string
+                    description: The requester IP address
+        "400":
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "418":
+          description: I'm a teapot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "451":
+          description: Unavailable for legal reasons.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    CommandExecution:
+      type: object
+      properties:
+        stdout:
+          type: string
+        stderr:
+          type: string
+        exit_code:
+          type: integer
+        execution_time:
+          type: number
+          description: Time taken to execute this command, in seconds

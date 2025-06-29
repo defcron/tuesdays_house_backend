@@ -9,7 +9,7 @@ RUN apt-get install -y xfce4 xfce4-goodies
 RUN apt-get install -y software-properties-common qemu-system 
 RUN apt-get install -y build-essential gdb cmake automake autoconf nodejs npm yarnpkg neovim zip unzip p7zip-full tar gzip git
 RUN apt-get install -y w3m links2 lynx chromium nginx openssh-server uvicorn wget curl traceroute tcpdump wireshark nmap dnsutils inetutils-ping inetutils-telnet netcat-openbsd dnsenum dnsmap fail2ban forensics-extra gwhois whois irssi irssi-scripts prips urlextractor strace socat ufw
-RUN apt-get install -y sudo apt-transport-https ca-certificates gnupg lsb-release apt-utils tmux fortune cowsay lolcat caca-utils libcaca-dev ffmpeg ffmpeg-doc libavcodec-dev libavcodec-extra libavdevice-dev libavfilter-dev libavfilter-extra libavformat-dev libavformat-extra-dev libavutil-dev mpv vlc
+RUN apt-get install -y sudo apt-transport-https ca-certificates gnupg lsb-release apt-utils tmux fortune cowsay lolcat caca-utils libcaca-dev ffmpeg ffmpeg-doc libavcodec-dev libavcodec-extra libavdevice-dev libavfilter-dev libavfilter-extra libavformat-dev libavformat-extra libavutil-dev mpv vlc
 RUN apt-get install -y python3-full libpython3-dev python3-pip pipx python3-venv python3-fastapi python3-requests python3-starlette python3-whois python3-dotenv python3-uvicorn
 RUN apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y && apt-get autoremove -y
 

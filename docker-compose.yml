@@ -1,3 +1,5 @@
+name: tuesdays-backend
+
 services:
   tuesdays-backend:
     image: gptenv/tuesdays-backend:latest
@@ -20,7 +22,7 @@ services:
       - /opt/env/tuesday:/opt/env/tuesday/opt/env/tuesday
       - /opt/gptenv:/opt/gptenv
       - /opt/gptenv:/opt/env/tuesday/opt/gptenv
-      - /proc:/proc
+      - /proc:/proc # enable "layer 0" (Dangerous! Also, this doesn't seem to work on WSL2)
       - /proc:/opt/env/tuesday/proc
       - /proc:/opt/env/tuesday/opt/env/tuesday/proc
       - /sys:/sys
@@ -30,7 +32,8 @@ services:
       - /dev:/opt/env/tuesday/dev
       - /dev:/opt/env/tuesday/opt/env/tuesday/dev
       #- /dev/pts:/dev/pts
-      #- /dev/pts:/home/tuesday/rootfs/dev/pts
+      #- /dev/pts:/opt/env/tuesday/dev/pts
+      #- /dev/pts:/opt/env/tuesday/opt/env/tuesday/dev/pts
       - /var/run/dbus:/var/run/dbus
       - /var/run/dbus:/opt/env/tuesday/var/run/dbus
       - /var/run/dbus:/opt/env/tuesday/opt/env/tuesday/var/run/dbus

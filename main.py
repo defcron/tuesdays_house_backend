@@ -17,6 +17,7 @@ import tempfile
 import datetime
 import requests
 import base64
+import secrets
 
 app = FastAPI()
 #router = APIRouter() # Use APIRouter() instead of FastAPI() in the future.
@@ -116,22 +117,37 @@ async def exec_command(payload: TerminalCommand, _: None = Depends(verify_auth))
         elif payload.conversationId is not None and payload.conversationId != "":
             tmuxSession = payload.conversationId
 
+        # UTC milliseconds since UNIX epoch
+        unix_ms = int(time.time() * 1000.0)
+
+        # UTC nanoseconds (accurate-ish depending on platform)
+        unix_ns = int(time.time_ns())
+
+        # 6 cryptographically secure random bytes as hex
+        random_bytes = str(secrets.token_hex(6))
+
+        # Generate a UUID4 string (standard random-based UUID)
+        random_uuid = str(uuid.uuid4())
+
+        # Assemble filename
+        command_exit_code_file_path = f'/tmp/.tuesday-exitcode.{random_uuid}.{unix_ms}.{unix_ns}.{random_bytes}.tmp.log'
+
         try:
             # Create a real temporary script file
             with tempfile.NamedTemporaryFile("w", delete=False, suffix=".sh") as f:
-                f.write("#!/bin/bash\n")
-                f.write(f'THB_CMD_TIMESTAMP="$(date -Ins | xxd -p -c0)"\n')
-                f.write(f'cd $HOME && source ~/.profile; tmux new-session -s "{tmuxSession}-$THB_CMD_TIMESTAMP" -d "bash -i -l"\n')
-                f.write(f'tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" "date" C-m\n')
-                f.write(f'tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" "cd $HOME && source ~/.profile" C-m\n')
-                f.write(f'''tmux load-buffer -b "{tmuxSession}-$THB_CMD_TIMESTAMP" - <<'THBBASHCMDEOF'\nbash -i -l <<'THBBASHINNERCMDEOF'\n''')
-                f.write(payload.command + "\n")
+                f.write(f'''#!/bin/bash\n''')
+                f.write(f'''THB_CMD_TIMESTAMP="$(date -Ins | xxd -p -c0)"\n''')
+                f.write(f'''cd $HOME && source ~/.profile; tmux new-session -s "{tmuxSession}-$THB_CMD_TIMESTAMP" -d "bash -i -l"\n''')
+                f.write(f'''tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" "date" C-m\n''')
+                f.write(f'''tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" "cd $HOME && source ~/.profile" C-m\n''')
+                f.write(f'''tmux load-buffer -b "{tmuxSession}-$THB_CMD_TIMESTAMP" - <<'THBBASHCMDEOF'\nbash -i -l <<THBBASHINNERCMDEOF\n''')
+                f.write(f'''{payload.command}\n''')
                 f.write(f'''THBBASHINNERCMDEOF\n''')
-                f.write(f'''echo $? > /tmp/tuesday-exitcode\n''')
+                f.write(f'''echo $? > {command_exit_code_file_path}\n''')
                 f.write(f'''THBBASHCMDEOF\n\n''')
-                f.write(f'tmux paste-buffer -b "{tmuxSession}-$THB_CMD_TIMESTAMP" -t "{tmuxSession}-$THB_CMD_TIMESTAMP"\n')
-                f.write(f'tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" C-m\n')
-                f.write(f'tmux delete-buffer -b "{tmuxSession}-$THB_CMD_TIMESTAMP"\n')
+                f.write(f'''tmux paste-buffer -b "{tmuxSession}-$THB_CMD_TIMESTAMP" -t "{tmuxSession}-$THB_CMD_TIMESTAMP"\n''')
+                f.write(f'''tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" C-m\n''')
+                f.write(f'''tmux delete-buffer -b "{tmuxSession}-$THB_CMD_TIMESTAMP"\n''')
                 f.write(f'tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" "date" C-m\n')
                 f.write(f'sleep 25 && tmux capture-pane -t "{tmuxSession}-$THB_CMD_TIMESTAMP" -pS -\n')
                 f.write(f'\necho "tmuxSession was: \"{tmuxSession}-$THB_CMD_TIMESTAMP\""\n')
@@ -151,7 +167,7 @@ async def exec_command(payload: TerminalCommand, _: None = Depends(verify_auth))
             # Read exit code
             exit_code = 1
             try:
-                with open("/tmp/tuesday-exitcode") as f:
+                with open(f'{command_exit_code_file_path}') as f:
                     exit_code = int(f.read().strip())
             except:
                 exit_code = proc.returncode
@@ -170,15 +186,19 @@ async def exec_command(payload: TerminalCommand, _: None = Depends(verify_auth))
             }
 
         except Exception as e:
+            dir(e)
+            print(e)
             raise HTTPException(status_code=451, detail=str(e))
         finally:
             # Cleanup
             if os.path.exists(script_path):
                 os.remove(script_path)
-            if os.path.exists("/tmp/tuesday-exitcode"):
-                os.remove("/tmp/tuesday-exitcode")
+            if os.path.exists(f'{command_exit_code_file_path}'):
+                os.remove(f'{command_exit_code_file_path}')
 
     except Exception as e:
+        dir(e)
+        print(e)
         raise HTTPException(status_code=418, detail=str(e))
 
 @app.get("/api/files")

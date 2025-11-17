@@ -133,7 +133,7 @@ async def exec_command(payload: TerminalCommand, _: None = Depends(verify_auth))
                 f.write(f'tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" C-m\n')
                 f.write(f'tmux delete-buffer -b "{tmuxSession}-$THB_CMD_TIMESTAMP"\n')
                 f.write(f'tmux send-keys -t "{tmuxSession}-$THB_CMD_TIMESTAMP" "date" C-m\n')
-                f.write(f'sleep 15 && tmux capture-pane -t "{tmuxSession}-$THB_CMD_TIMESTAMP" -pS -\n')
+                f.write(f'sleep 25 && tmux capture-pane -t "{tmuxSession}-$THB_CMD_TIMESTAMP" -pS -\n')
                 f.write(f'\necho "tmuxSession was: \"{tmuxSession}-$THB_CMD_TIMESTAMP\""\n')
 
                 script_path = f.name

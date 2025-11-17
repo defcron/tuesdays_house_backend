@@ -1,0 +1,36 @@
+{
+  "name": "tuesday_gptenv_com__jit_plugin",
+  "description": "Access the Tuesday VPS shell and file system.",
+  "methods": {
+    "execCommand": {
+      "description": "Run any arbitrary shell command in Tuesday's tmux-managed environment. Fully interactive-capable with stdout/stderr/exit code return.",
+      "parameters": {
+        "command": "string",
+        "conversationId": "string",
+        "tmuxSession": "string (optional)",
+        "decoderPipeline": "string (optional)",
+        "interactive": "boolean (optional)"
+      }
+    },
+    "listFiles": {
+      "description": "List available user-facing files in Tuesday's home directory.",
+      "parameters": {}
+    },
+    "downloadFile": {
+      "description": "Stream a file as a multipart/form-data response. Filepath must be absolute or relative to the home directory.",
+      "parameters": {
+        "filepath": "string"
+      }
+    },
+    "downloadFiles": {
+      "description": "Download up to 10 files at once. Returns base64-encoded content for each.",
+      "parameters": {
+        "filepath": "string[]"
+      }
+    },
+    "uploadFiles": {
+      "description": "Upload up to 10 files in a single request. Each file is a separate part named 'file'.",
+      "parameters": {}
+    }
+  }
+}

@@ -45,7 +45,7 @@ Pin-Priority: 1000\
 
 RUN cd "$HOME" && wget https://github.com/browsh-org/browsh/releases/download/v1.8.0/browsh_1.8.0_linux_amd64.deb && sudo apt install -y ./browsh_1.8.0_linux_amd64.deb && rm ./browsh_1.8.0_linux_amd64.deb
 
-RUN cd "$HOME" && curl -fsSL https://get.docker.com/rootless > get.docker.com.rootless.sh && chmod 750 get.docker.com.rootless.sh && ./get.docker.com.rootless.sh
+RUN cd "$HOME" && curl -fsSL https://get.docker.com/rootless > get.docker.com.rootless.sh && chmod 750 get.docker.com.rootless.sh # && # ./get.docker.com.rootless.sh # TODO: automate running this last part inside the container on first launch
 
 WORKDIR /app
 

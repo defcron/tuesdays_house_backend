@@ -10,7 +10,7 @@ RUN apt-get install -y qemu-system #software-properties-common
 RUN apt-get install -y build-essential gdb cmake automake autoconf nodejs npm yarnpkg neovim zip unzip 7zip 7zip-standalone 7zip-rar p7zip-full p7zip-rar tar gzip git liblzma5 liblzma-dev libarchive13t64 libarchive-dev
 RUN apt-get install -y w3m links2 lynx chromium nginx openssh-server uvicorn wget curl traceroute tcpdump wireshark nmap dnsutils inetutils-ping inetutils-telnet netcat-openbsd dnsenum dnsmap fail2ban forensics-extra gwhois whois irssi irssi-scripts prips urlextractor strace socat ufw
 RUN apt-get install -y sudo apt-transport-https ca-certificates gnupg lsb-release apt-utils tmux fortune cowsay lolcat caca-utils libcaca-dev ffmpeg ffmpeg-doc libavcodec-dev libavcodec-extra libavdevice-dev libavfilter-dev libavfilter-extra libavformat-dev libavformat-extra libavutil-dev mpv vlc
-RUN apt-get install -y python3-full libpython3-dev python3-pip pipx python3-venv python3-fastapi python3-requests python3-starlette python3-whois python3-dotenv python3-uvicorn python3-py7zr
+RUN apt-get install -y python3-full libpython3-dev python3-pip pipx python3-venv python3-fastapi python3-requests python3-starlette python3-dotenv python3-uvicorn python3-py7zr
 RUN apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y && apt-get autoremove -y
 
 RUN ufw default allow outgoing && ufw default deny incoming && ufw allow 22/tcp && ufw allow 2222/tcp && ufw allow 80/tcp && ufw allow 8080/tcp && ufw allow 8000/tcp && ufw allow 8888/tcp && ufw allow 443/tcp && ufw allow 5002/tcp && ufw allow 9903/tcp # && yes | ufw enable
@@ -35,6 +35,7 @@ RUN cd "$HOME" && mkdir -p ~/.venvs && python3 -m venv ~/.venvs/tuesday || true 
 #RUN source ~/.profile && pip install llm-workflow-engine
 #RUN source ~/.profile && pip install llm
 #RUN source ~/.profile && pip install -U g4f[all]
+#RUN source ~/.profile && pip install whois
 
 RUN sudo install -d -m 0755 /etc/apt/keyrings && wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | sudo tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null && gpg -n -q --import --import-options import-show /etc/apt/keyrings/packages.mozilla.org.asc | awk '/pub/{getline; gsub(/^ +| +$/,""); if($0 == "35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3") print "\nThe key fingerprint matches ("$0").\n"; else print "\nVerification failed: the fingerprint ("$0") does not match the expected one.\n"}' && echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | sudo tee -a /etc/apt/sources.list.d/mozilla.list > /dev/null && echo '\
 Package: *\
